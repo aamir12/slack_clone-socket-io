@@ -30,9 +30,16 @@ io.on('connection',(socket)=>{
        }
    });
    
-   // console.log(nsList);
+   //step1: emit list of all namespace
    socket.emit('nsList',nsList);
   // console.log(socketUsers);
+
+   // both are similar send data to all
+   // io.emit('message',data);
+   // io.of('/').emit('message',data);
+
+   //emit to everybody except sender
+   //socket.broadcast.emit('an event', { some: 'data' });
 });
 
 
@@ -41,15 +48,19 @@ io.on('connection',(socket)=>{
 //loop through all namespace to setup connection
 namespaces.forEach((namespace)=>{
     io.of(namespace.endPoint).on('connection',(socket)=>{
+        //send data by client at the time of connection
         const username = socket.handshake.query.username;
         // call every socket request; we filter the request by packet
         socket.use((packet, next) => {
             //console.log('+++++++Middleware+++++++');
+            //packet return event name and namespace
+            //console.log(packet);
             // if (packet.doge === true) return next();
-            // next(new Error('Not a doge error'));
+            //next(new Error('AuthFailed'));
             next();
         });
 
+        //return all the room of particular namespace;
         socket.on('getRooms',function(ns){
             const rooms = namespace.rooms;
             socket.emit('nsRoomLoad',rooms);
@@ -58,7 +69,10 @@ namespaces.forEach((namespace)=>{
         
 
         socket.on('joinRoom',(room)=>{
+            //socket.rooms return the rooms info object(socket.id,rooms).
+            //socket.rooms[1] is current room
             const roomToLeave = Object.keys(socket.rooms)[1];
+            //leave room
             socket.leave(roomToLeave);
             updateNumUsers(namespace, roomToLeave)
 
@@ -84,7 +98,8 @@ namespaces.forEach((namespace)=>{
                 username:username,
                 avatar: 'https://via.placeholder.com/30' 
             }
-            
+            //volatile flag is used to flash the data,if the client network is slow
+            //io.volatile.of(namespace.endPoint).to(data.room).emit('messageToClients',fullMsg);
             io.of(namespace.endPoint).to(data.room).emit('messageToClients',fullMsg);
             //const ns = namespaces.find(x=> x.endPoint === data.namespace);
             const rm = namespace.rooms.find(x=>x.roomTitle ===data.room);
@@ -92,15 +107,19 @@ namespaces.forEach((namespace)=>{
 
         });
 
-        // socket.on('disconnect',(reson)=>{
-        //     const userInfo = {...socketUsers[socket.id]};
-        //     delete socketUsers[socket.id];
-        //     updateNumUsers(namespace,userInfo.room);
-        // });
+        //call when socket is disconnect
+        socket.on('disconnect',(reason)=>{
+            //const userInfo = {...socketUsers[socket.id]};
+            //delete socketUsers[socket.id];
+            //updateNumUsers(namespace,userInfo.room);
+
+            console.log('disconnect',reason);
+        });
 
     });
 
     function updateNumUsers(namespace,room){
+        //it return number of clients(user) in rooms
         io.of(namespace.endPoint).in(room).clients( (error,clients)=>{
             if(!error){
              let numUsers = clients.length;

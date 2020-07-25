@@ -17,6 +17,16 @@ app.controller('mycontroller', function scripts($scope) {
         $scope.nameSpaces = data;
        });
     });
+
+    //on connection error
+    socket1.on('connect_error', (error) => {
+       console.log(error);
+    });
+
+    //when reconnect successfully
+    socket1.on('reconnect', (attemptNumber) => {
+       console.log(attemptNumber);
+    });
     
     
     $scope.joinNameSpace = function(ns){
@@ -54,6 +64,16 @@ app.controller('mycontroller', function scripts($scope) {
                // messgesEle.scrollTop(0,messgesEle.scrollHeight);
             });
         })
+
+        //when error generate from server
+        nsSocket.on('error', (error) => {
+            console.log(error);
+            if(error == 'AuthFailed'){
+                nsSocket.close();
+                socket1.close();
+            }
+
+        });
     }
 
     $scope.joinNameSpace($scope.namespace);
